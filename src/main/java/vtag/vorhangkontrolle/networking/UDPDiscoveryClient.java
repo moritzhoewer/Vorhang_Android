@@ -1,4 +1,4 @@
-package vtag.vorhangkontrolle;
+package vtag.vorhangkontrolle.networking;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -6,40 +6,46 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 /**
- * Created by Moritz on 12.03.2017.
+ * Provides functionality for finding the server on the network.
+ * Utilizes UDP Broadcast packages.
+ *
+ * @author Moritz Höwer
+ * @version 1.0 - 17.03.2017
  */
+public class UDPDiscoveryClient {
 
-public class DiscoveryClient {
+    private static final String DISCOVER_REQUEST = "VORHANGKONTROLLE_REQUEST";
+    private static final int RECEIVE_BUFFER_SIZE = 4096;
+    private static final String DISCOVER_RESPONSE = "VORHANGKONTROLLE_RESPONSE";
 
-    public InetAddress getServerAddress() {
+    /**
+     * Find the server address on the network.
+     *
+     * @param timeout how long to wait for a reply (in ms)
+     * @return the server address or {@code null} if no response is received within th timeout
+     */
+    public InetAddress getServerAddress(int timeout) {
         // Find the server using UDP broadcast
         try {
             // Open a random port to send the package
             DatagramSocket sock = new DatagramSocket();
             sock.setBroadcast(true);
 
-            byte[] sendData = "VORHANGKONTROLLE_REQUEST".getBytes();
+            byte[] sendData = DISCOVER_REQUEST.getBytes();
 
             DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length,
                     InetAddress.getByName("255.255.255.255"), 9001);
             sock.send(sendPacket);
-            System.out.println("Request packet sent to: 255.255.255.255 (DEFAULT)");
 
             // Wait for a response
-            byte[] recvBuf = new byte[4096];
+            byte[] recvBuf = new byte[RECEIVE_BUFFER_SIZE];
             DatagramPacket receivePacket = new DatagramPacket(recvBuf, recvBuf.length);
-            sock.setSoTimeout(1000);
+            sock.setSoTimeout(timeout);
             sock.receive(receivePacket);
-
-            // We have a response
-            System.out.println("Broadcast response from server: " + receivePacket.getAddress().getHostAddress());
 
             // Check if the message is correct
             String message = new String(receivePacket.getData()).trim();
-            if (message.equals("VORHANGKONTROLLE_RESPONSE")) {
-                // DO SOMETHING WITH THE SERVER'S IP (for example, store it in
-                // your controller)
-                System.out.println("======\nServer IP is " + receivePacket.getAddress().getHostAddress() + "\n======");
+            if (message.equals(DISCOVER_RESPONSE)) {
                 // Close the port!
                 sock.close();
                 return receivePacket.getAddress();

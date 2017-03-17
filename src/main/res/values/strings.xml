@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">VorhangKontrolle</string>
+    <string name="open_text">Vorhang Auf</string>
 </resources>
