@@ -12,21 +12,27 @@ public class MainActivity extends AppCompatActivity {
 
     private Controller controller;
 
+    private View btnRetry;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        controller = Controller.getMainController();
+        controller = Controller.getController();
         controller.registerActivity(this);
+        controller.attemptConnection();
+        btnRetry = findViewById(R.id.btnConnect);
+        btnRetry.setEnabled(false);
     }
 
     public void connectionFailed(){
         Toast t = Toast.makeText(this, "No Server was found!", Toast.LENGTH_SHORT);
         t.show();
+        btnRetry.setEnabled(true);
     }
 
     public void connect(View v) {
-        // TODO: Indicate that we are connecting
+        btnRetry.setEnabled(false);
         controller.attemptConnection();
     }
 }

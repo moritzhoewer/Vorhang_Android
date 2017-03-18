@@ -40,7 +40,7 @@ public class CommandActivity extends AppCompatActivity {
         image = (ImageView)findViewById(R.id.imgCommandImage);
         text = (TextView)findViewById(R.id.txtCommandText);
 
-        controller = Controller.getMainController();
+        controller = Controller.getController();
         controller.registerActivity(this);
     }
 
