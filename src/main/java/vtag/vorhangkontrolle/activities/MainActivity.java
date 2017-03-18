@@ -5,18 +5,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Toast;
 
-import vtag.vorhangkontrolle.MainController;
+import vtag.vorhangkontrolle.Controller;
 import vtag.vorhangkontrolle.R;
 
 public class MainActivity extends AppCompatActivity {
 
-    private MainController mainController;
+    private Controller controller;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mainController = new MainController(this);
+        controller = Controller.getMainController();
+        controller.registerActivity(this);
     }
 
     public void connectionFailed(){
@@ -26,6 +27,6 @@ public class MainActivity extends AppCompatActivity {
 
     public void connect(View v) {
         // TODO: Indicate that we are connecting
-        mainController.attemptConnection();
+        controller.attemptConnection();
     }
 }

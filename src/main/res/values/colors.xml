@@ -8,4 +8,6 @@
     <color name="yellow">#ffe100</color>
     <color name="lightGreen">#64dd17</color>
     <color name="white">#ffffff</color>
+
+    <color name="black_overlay">#66000000</color>
 </resources>

@@ -11,22 +11,33 @@ public class CommandDisplayRule {
     /**
      * the background color
      */
-    public final int backgroundColorID;
+    private final int backgroundColorID;
 
     /**
      * the image to display
      */
-    public final int imageID;
+    private final int imageID;
 
     /**
      * the text to display
      */
-    public final int textID;
+    private final int textID;
 
-    public CommandDisplayRule(int backgroundColorID, int imageID, int textID){
+    public CommandDisplayRule(int backgroundColorID, int imageID, int textID) {
         this.backgroundColorID = backgroundColorID;
         this.imageID = imageID;
         this.textID = textID;
     }
 
+    public int getBackgroundColorID() {
+        return backgroundColorID;
+    }
+
+    public int getImageID() {
+        return imageID;
+    }
+
+    public int getTextID() {
+        return textID;
+    }
 }

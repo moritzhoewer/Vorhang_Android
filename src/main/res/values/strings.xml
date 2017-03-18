@@ -1,4 +1,15 @@
 <resources>
     <string name="app_name">VorhangKontrolle</string>
     <string name="open_text">Vorhang Auf</string>
+    <string name="close_text">Vorhang Zu</string>
+    <string name="stop_text">Stop</string>
+    <string name="wait_text">Warten...</string>
+    <string name="perfect_text">So ist perfekt</string>
+
+    <string name="title_activity_command">CommandActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="title_activity_standby">StandbyActivity</string>
+
+    <string name="title_activity_fullscreen">FullscreenActivity</string>
 </resources>
