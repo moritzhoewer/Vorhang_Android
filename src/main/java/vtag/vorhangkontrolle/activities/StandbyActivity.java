@@ -19,6 +19,11 @@ public class StandbyActivity extends AppCompatActivity {
         controller.registerActivity(this);
     }
 
+    @Override
+    public void onBackPressed() {
+        // this would just mess everything up...
+    }
+
     public void handleRequest(){
         setContentView(R.layout.activity_standby_handle_request);
     }

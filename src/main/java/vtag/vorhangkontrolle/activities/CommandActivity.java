@@ -5,7 +5,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import vtag.vorhangkontrolle.Command;
 import vtag.vorhangkontrolle.CommandDisplayRule;
@@ -46,8 +45,7 @@ public class CommandActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        Toast t = Toast.makeText(this, "Das geht jetzt nicht!", Toast.LENGTH_SHORT);
-        t.show();
+        // this would just mess everything up...
     }
 
     @Override

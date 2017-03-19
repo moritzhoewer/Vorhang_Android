@@ -3,13 +3,25 @@
     <string name="open_text">Vorhang Auf</string>
     <string name="close_text">Vorhang Zu</string>
     <string name="stop_text">Stop</string>
-    <string name="wait_text">Warten...</string>
+    <string name="wait_text">Warten&#8230;</string>
     <string name="perfect_text">So ist perfekt</string>
 
     <string name="title_activity_command">CommandActivity</string>
-    <string name="dummy_button">Dummy Button</string>
-    <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="title_activity_standby">StandbyActivity</string>
 
-    <string name="title_activity_fullscreen">FullscreenActivity</string>
+    <string name="retry">Nochmal versuchen</string>
+    <string name="searching_for_server">Suche nach Server&#8230;</string>
+    <string name="stage_ready">Bühne bereit!</string>
+    <string name="foh_ready">FOH ist bereit für Vorhang.</string>
+    <string name="not_ready">Noch nicht!</string>
+    <string name="cancel_request">Anfrage abbrechen</string>
+    <string name="waiting_for_response">Warte auf Antwort&#8230;</string>
+    <string name="info_standby">Knopf drücken, um beim FOH anzukündigen, dass die Bühne bereit ist um den Vorhang zu bewegen</string>
+    <string name="connected_to_foh">Verbunden mit dem FOH.</string>
+
+    <string name="toast_server_not_found">Kein Server gefunden!</string>
+    <string name="toast_connected">Verbunden!</string>
+    <string name="toast_foh_cancelled">FOH ist nicht mehr bereit!</string>
+    <string name="toast_foh_accepted">Los gehts!</string>
+    <string name="toast_foh_denied">FOH ist nicht bereit!</string>
 </resources>

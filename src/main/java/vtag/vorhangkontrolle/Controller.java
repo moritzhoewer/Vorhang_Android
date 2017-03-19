@@ -26,13 +26,13 @@ import vtag.vorhangkontrolle.networking.UDPDiscoveryClient;
  */
 public class Controller implements MessageHandler, ClientListener {
     private enum State{
-        UNKNONW, MAIN, STANDBY, COMMAND
+        UNKNOWN, MAIN, STANDBY, WAITING_FOR_SERVER, WAITING_FOR_USER, COMMAND
     }
     private State state;
     private static final int DISCOVERY_TIMEOUT = 1000;
-    public static final int VIBRATE_LONG = 500;
-    public static final int VIBRATE_SHORT = 200;
-    public static final int DELAY_BACK_TO_STANDBY = 1500;
+    private static final int VIBRATE_LONG = 500;
+    private static final int VIBRATE_SHORT = 200;
+    private static final int DELAY_BACK_TO_STANDBY = 1500;
     private Handler mainHandler;
     private TCPClient client;
 
@@ -53,7 +53,7 @@ public class Controller implements MessageHandler, ClientListener {
 
     private Controller() {
         mainHandler = new Handler(Looper.getMainLooper());
-        state = State.UNKNONW;
+        state = State.UNKNOWN;
     }
 
     public void registerActivity(MainActivity mainActivity) {
@@ -100,11 +100,12 @@ public class Controller implements MessageHandler, ClientListener {
 
     private void connectionFailed() {
         mainHandler.post(mainActivity::connectionFailed);
+        showToast(mainActivity.getString(R.string.toast_server_not_found));
     }
 
     private void connectionSuccessfull() {
         startStandbyActivity();
-        showToast("Verbunden!");
+        showToast(mainActivity.getString(R.string.toast_connected));
     }
 
     private void connectToServer() {
@@ -140,44 +141,52 @@ public class Controller implements MessageHandler, ClientListener {
 
     @Override
     public void handleMessage(String message) {
-        if (message.startsWith("CMD") && state == State.COMMAND) {
-            try {
-                Command command = Command.forName(message);
-                mainHandler.post(() -> commandActivity.displayCommand(command));
-                vibrator.vibrate(VIBRATE_SHORT);
-                if(command == Command.PERFECT){
-                    try{
-                        Thread.sleep(DELAY_BACK_TO_STANDBY);
-                    } catch (InterruptedException e){
-                        Log.e("VorhangKontrolle", "Waiting was interrupted!");
+        switch(state){
+            case COMMAND:
+                if (message.startsWith("CMD")) {
+                    try {
+                        Command command = Command.forName(message);
+                        mainHandler.post(() -> commandActivity.displayCommand(command));
+                        vibrator.vibrate(VIBRATE_SHORT);
+                        if(command == Command.PERFECT){
+                            try{
+                                Thread.sleep(DELAY_BACK_TO_STANDBY);
+                            } catch (InterruptedException e){
+                                Log.e("VorhangKontrolle", "Waiting was interrupted!");
+                            }
+                            startStandbyActivity();
+                        }
+                    } catch (IllegalArgumentException e) {
+                        Log.w("VorhangKontrolle", "Received invalid Command: " + message);
                     }
-                    startStandbyActivity();
                 }
-            } catch (IllegalArgumentException e) {
-                Log.w("VorhangKontrolle", "Received invalid Command: " + message);
-            }
-        } else if(state == State.STANDBY) {
-            switch (message){
-                case "CANCEL":
-                    startStandbyActivity();
-                    showToast("FOH ist nicht mehr bereit!");
-                    doubleVibrate();
-                    break;
-                case "ACCEPT":
-                    startCommandActivity();
-                    showToast("Los gehts!");
-                    vibrator.vibrate(VIBRATE_LONG);
-                    break;
-                case "DENY":
-                    startStandbyActivity();
-                    showToast("FOH ist nicht bereit!");
-                    doubleVibrate();
-                    break;
-                case "REQUEST":
+                break;
+            case STANDBY:
+                if(message.equals("REQUEST")){
+                    state = State.WAITING_FOR_USER;
                     mainHandler.post(standbyActivity::handleRequest);
                     vibrator.vibrate(VIBRATE_LONG);
+                }
+                break;
+            case WAITING_FOR_SERVER:
+                if(message.equals("ACCEPT")){
+                    startCommandActivity();
+                    showToast(mainActivity.getString(R.string.toast_foh_accepted));
+                    vibrator.vibrate(VIBRATE_LONG);
+                } else if(message.equals("DENY")){
+                    startStandbyActivity();
+                    showToast(mainActivity.getString(R.string.toast_foh_denied));
+                    doubleVibrate();
+                }
+                break;
+            case WAITING_FOR_USER:
+                if(message.equals("CANCEL")){
+                    startStandbyActivity();
+                    showToast(mainActivity.getString(R.string.toast_foh_cancelled));
+                    doubleVibrate();
                     break;
-            }
+                }
+                break;
         }
     }
 
@@ -186,8 +195,6 @@ public class Controller implements MessageHandler, ClientListener {
     }
 
     private void showToast(String text){
-        mainHandler.post(() -> {
-            Toast.makeText(mainActivity, text, Toast.LENGTH_SHORT).show();
-        });
+        mainHandler.post(() -> Toast.makeText(mainActivity, text, Toast.LENGTH_SHORT).show());
     }
 }
