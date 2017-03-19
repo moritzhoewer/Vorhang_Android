@@ -13,6 +13,7 @@ import java.net.InetAddress;
 import vtag.vorhangkontrolle.activities.CommandActivity;
 import vtag.vorhangkontrolle.activities.MainActivity;
 import vtag.vorhangkontrolle.activities.StandbyActivity;
+import vtag.vorhangkontrolle.networking.ClientListener;
 import vtag.vorhangkontrolle.networking.MessageHandler;
 import vtag.vorhangkontrolle.networking.TCPClient;
 import vtag.vorhangkontrolle.networking.UDPDiscoveryClient;
@@ -23,8 +24,7 @@ import vtag.vorhangkontrolle.networking.UDPDiscoveryClient;
  * @author Moritz Höwer
  * @version 1.0 - 17.03.2017
  */
-public class Controller implements MessageHandler {
-
+public class Controller implements MessageHandler, ClientListener {
     private enum State{
         UNKNONW, MAIN, STANDBY, COMMAND
     }
@@ -89,6 +89,11 @@ public class Controller implements MessageHandler {
         startStandbyActivity();
     }
 
+    @Override
+    public void handleDisconnect() {
+        startMainActivity();
+    }
+
     public void attemptConnection() {
         new Thread(this::connectToServer).start();
     }
@@ -108,7 +113,7 @@ public class Controller implements MessageHandler {
         if(serverAddress == null){
             connectionFailed();
         } else {
-            client = new TCPClient(serverAddress, this);
+            client = new TCPClient(serverAddress, this, this);
             if(client.connect()) {
                 connectionSuccessfull();
             } else {
@@ -123,6 +128,11 @@ public class Controller implements MessageHandler {
         mainActivity.startActivity(intent);
     }
 
+    private void startMainActivity() {
+        Intent intent = new Intent(mainActivity, MainActivity.class);
+        mainActivity.startActivity(intent);
+    }
+
     private void startStandbyActivity(){
         Intent intent = new Intent(mainActivity, StandbyActivity.class);
         mainActivity.startActivity(intent);
@@ -130,7 +140,6 @@ public class Controller implements MessageHandler {
 
     @Override
     public void handleMessage(String message) {
-        message = message.trim();
         if (message.startsWith("CMD") && state == State.COMMAND) {
             try {
                 Command command = Command.forName(message);
@@ -165,7 +174,7 @@ public class Controller implements MessageHandler {
                     doubleVibrate();
                     break;
                 case "REQUEST":
-                    standbyActivity.handleRequest();
+                    mainHandler.post(standbyActivity::handleRequest);
                     vibrator.vibrate(VIBRATE_LONG);
                     break;
             }
@@ -173,7 +182,7 @@ public class Controller implements MessageHandler {
     }
 
     private void doubleVibrate() {
-        vibrator.vibrate(new long[]{100, 100, 100, 100}, 1);
+        vibrator.vibrate(new long[]{100, 100, 100, 100}, -1);
     }
 
     private void showToast(String text){
