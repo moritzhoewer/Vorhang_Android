@@ -3,6 +3,7 @@ package vtag.vorhangkontrolle.activities;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -41,6 +42,8 @@ public class CommandActivity extends AppCompatActivity {
 
         controller = Controller.getController();
         controller.registerActivity(this);
+
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
     @Override

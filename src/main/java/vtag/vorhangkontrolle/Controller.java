@@ -1,10 +1,12 @@
 package vtag.vorhangkontrolle;
 
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Vibrator;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -25,10 +27,13 @@ import vtag.vorhangkontrolle.networking.UDPDiscoveryClient;
  * @version 1.0 - 17.03.2017
  */
 public class Controller implements MessageHandler, ClientListener {
-    private enum State{
-        UNKNOWN, MAIN, STANDBY, WAITING_FOR_SERVER, WAITING_FOR_USER, COMMAND
+    private enum State {
+        UNKNOWN, DISCONNECTED, STANDBY, WAITING_FOR_SERVER, WAITING_FOR_USER, COMMAND
     }
+
     private State state;
+    private boolean hasFocus;
+    private int notificationId;
     private static final int DISCOVERY_TIMEOUT = 1000;
     private static final int VIBRATE_LONG = 500;
     private static final int VIBRATE_SHORT = 200;
@@ -54,44 +59,67 @@ public class Controller implements MessageHandler, ClientListener {
     private Controller() {
         mainHandler = new Handler(Looper.getMainLooper());
         state = State.UNKNOWN;
+        hasFocus = false;
+        notificationId = -1;
     }
 
     public void registerActivity(MainActivity mainActivity) {
         this.mainActivity = mainActivity;
         vibrator = (Vibrator) (mainActivity.getApplicationContext().getSystemService(Context.VIBRATOR_SERVICE));
-        state = State.MAIN;
+        state = State.DISCONNECTED;
     }
+
     public void registerActivity(CommandActivity commandActivity) {
         this.commandActivity = commandActivity;
         state = State.COMMAND;
     }
+
     public void registerActivity(StandbyActivity standbyActivity) {
         this.standbyActivity = standbyActivity;
         state = State.STANDBY;
     }
 
-    public void sendRequest(){
-        new Thread(() -> client.sendMessage("REQUEST")).start();
+    public void gainedFocus() {
+        hasFocus = true;
+        if(notificationId != -1){
+            NotificationManager mNotificationManager =
+                    (NotificationManager) standbyActivity.getSystemService(Context.NOTIFICATION_SERVICE);
+            mNotificationManager.cancel(notificationId);
+            notificationId = -1;
+        }
     }
 
-    public void cancelRequest(){
+    public void lostFocus() {
+        hasFocus = false;
+    }
+
+    public void sendRequest() {
+        new Thread(() -> client.sendMessage("REQUEST")).start();
+        state = State.WAITING_FOR_SERVER;
+    }
+
+    public void cancelRequest() {
         new Thread(() -> client.sendMessage("CANCEL")).start();
+        state = State.STANDBY;
         startStandbyActivity();
     }
 
-    public void acceptRequest(){
+    public void acceptRequest() {
         new Thread(() -> client.sendMessage("ACCEPT")).start();
+        state = State.COMMAND;
         startCommandActivity();
     }
 
-    public void denyRequest(){
+    public void denyRequest() {
         new Thread(() -> client.sendMessage("DENY")).start();
+        state = State.STANDBY;
         startStandbyActivity();
     }
 
     @Override
     public void handleDisconnect() {
         startMainActivity();
+        state = State.DISCONNECTED;
     }
 
     public void attemptConnection() {
@@ -105,17 +133,18 @@ public class Controller implements MessageHandler, ClientListener {
 
     private void connectionSuccessfull() {
         startStandbyActivity();
+        state = State.STANDBY;
         showToast(mainActivity.getString(R.string.toast_connected));
     }
 
     private void connectToServer() {
         UDPDiscoveryClient discovery = new UDPDiscoveryClient();
         InetAddress serverAddress = discovery.getServerAddress(DISCOVERY_TIMEOUT);
-        if(serverAddress == null){
+        if (serverAddress == null) {
             connectionFailed();
         } else {
             client = new TCPClient(serverAddress, this, this);
-            if(client.connect()) {
+            if (client.connect()) {
                 connectionSuccessfull();
             } else {
                 client = null;
@@ -134,24 +163,24 @@ public class Controller implements MessageHandler, ClientListener {
         mainActivity.startActivity(intent);
     }
 
-    private void startStandbyActivity(){
+    private void startStandbyActivity() {
         Intent intent = new Intent(mainActivity, StandbyActivity.class);
         mainActivity.startActivity(intent);
     }
 
     @Override
     public void handleMessage(String message) {
-        switch(state){
+        switch (state) {
             case COMMAND:
                 if (message.startsWith("CMD")) {
                     try {
                         Command command = Command.forName(message);
                         mainHandler.post(() -> commandActivity.displayCommand(command));
                         vibrator.vibrate(VIBRATE_SHORT);
-                        if(command == Command.PERFECT){
-                            try{
+                        if (command == Command.PERFECT) {
+                            try {
                                 Thread.sleep(DELAY_BACK_TO_STANDBY);
-                            } catch (InterruptedException e){
+                            } catch (InterruptedException e) {
                                 Log.e("VorhangKontrolle", "Waiting was interrupted!");
                             }
                             startStandbyActivity();
@@ -159,28 +188,35 @@ public class Controller implements MessageHandler, ClientListener {
                     } catch (IllegalArgumentException e) {
                         Log.w("VorhangKontrolle", "Received invalid Command: " + message);
                     }
+                } else if (message.equals("CANCEL")) {
+                    state = State.STANDBY;
+                    startStandbyActivity();
+                    showToast(mainActivity.getString(R.string.toast_foh_cancelled));
                 }
                 break;
             case STANDBY:
-                if(message.equals("REQUEST")){
+                if (message.equals("REQUEST")) {
                     state = State.WAITING_FOR_USER;
                     mainHandler.post(standbyActivity::handleRequest);
                     vibrator.vibrate(VIBRATE_LONG);
+                    if (!hasFocus) {
+                        createNotification();
+                    }
                 }
                 break;
             case WAITING_FOR_SERVER:
-                if(message.equals("ACCEPT")){
+                if (message.equals("ACCEPT")) {
                     startCommandActivity();
                     showToast(mainActivity.getString(R.string.toast_foh_accepted));
                     vibrator.vibrate(VIBRATE_LONG);
-                } else if(message.equals("DENY")){
+                } else if (message.equals("DENY")) {
                     startStandbyActivity();
                     showToast(mainActivity.getString(R.string.toast_foh_denied));
                     doubleVibrate();
                 }
                 break;
             case WAITING_FOR_USER:
-                if(message.equals("CANCEL")){
+                if (message.equals("CANCEL")) {
                     startStandbyActivity();
                     showToast(mainActivity.getString(R.string.toast_foh_cancelled));
                     doubleVibrate();
@@ -190,11 +226,23 @@ public class Controller implements MessageHandler, ClientListener {
         }
     }
 
+    private void createNotification() {
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(standbyActivity)
+                        .setSmallIcon(R.drawable.notification_icon)
+                        .setContentTitle("Anfrage vom FOH!")
+                        .setContentText("FOH möchte den Vorhang fahren!");
+        notificationId = 1;
+        NotificationManager mNotificationManager =
+                (NotificationManager) standbyActivity.getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(notificationId, mBuilder.build());
+    }
+
     private void doubleVibrate() {
         vibrator.vibrate(new long[]{100, 100, 100, 100}, -1);
     }
 
-    private void showToast(String text){
+    private void showToast(String text) {
         mainHandler.post(() -> Toast.makeText(mainActivity, text, Toast.LENGTH_SHORT).show());
     }
 }

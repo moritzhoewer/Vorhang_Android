@@ -24,6 +24,18 @@ public class StandbyActivity extends AppCompatActivity {
         // this would just mess everything up...
     }
 
+    @Override
+    public void onResume(){
+        super.onResume();
+        controller.gainedFocus();
+    }
+
+    @Override
+    public void onPause(){
+        super.onPause();
+        controller.lostFocus();
+    }
+
     public void handleRequest(){
         setContentView(R.layout.activity_standby_handle_request);
     }
